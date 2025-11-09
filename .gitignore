@@ -1,0 +1,42 @@
+# Зависимости
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Переменные окружения
+.env
+.env.local
+.env.*.local
+
+# Скомпилированные файлы
+dist/
+build/
+*.js.map
+*.d.ts
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Логи
+logs/
+*.log
+
+# Временные файлы
+tmp/
+temp/
+*.tmp
+
+# Кэш
+.cache/
+.parcel-cache/
+.eslintcache
+
+# Тестовое покрытие
+coverage/
+.nyc_output/

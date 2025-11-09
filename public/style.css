@@ -1,0 +1,150 @@
+:root {
+  color-scheme: dark light;
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --accent: #38bdf8;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --error: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout {
+  width: min(960px, 100%);
+  min-height: 95vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+}
+
+.header,
+.footer {
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.stream-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stream-status {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.stream-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.controls button {
+  background: var(--accent);
+  color: #0b1120;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.controls button:active {
+  transform: scale(0.97);
+}
+
+.controls button:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.6);
+  outline-offset: 2px;
+}
+
+.content {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.messages {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.message {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  padding: 16px;
+  background: rgba(30, 41, 59, 0.85);
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.3);
+}
+
+.message time {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.message strong {
+  font-size: 15px;
+  color: var(--accent);
+}
+
+.message p {
+  grid-column: 1 / -1;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.footer {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.status-error {
+  color: var(--error);
+}
+
+@media (max-width: 640px) {
+  .layout {
+    border-radius: 0;
+    min-height: 100vh;
+  }
+
+  .header,
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .controls button {
+    width: 100%;
+  }
+}
