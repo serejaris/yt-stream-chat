@@ -46,3 +46,24 @@ export function formatMessage(item: youtube_v3.Schema$LiveChatMessage) {
   const publishedAt = item.snippet?.publishedAt ? new Date(item.snippet.publishedAt) : new Date();
   return { time, author, text, messageId, publishedAt };
 }
+
+export async function getChannelStats(youtube: youtube_v3.Youtube, channelId: string) {
+  const response = await youtube.channels.list({
+    part: ["snippet", "statistics"],
+    id: [channelId],
+  });
+  
+  const channel = response.data.items?.[0];
+  if (!channel) {
+    return null;
+  }
+  
+  return {
+    title: channel.snippet?.title ?? "",
+    description: channel.snippet?.description ?? "",
+    subscriberCount: channel.statistics?.subscriberCount ?? "0",
+    videoCount: channel.statistics?.videoCount ?? "0",
+    viewCount: channel.statistics?.viewCount ?? "0",
+  };
+}
+

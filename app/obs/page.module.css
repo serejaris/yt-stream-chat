@@ -1,0 +1,79 @@
+.container {
+  width: 100%;
+  height: 100vh;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: transparent;
+}
+
+.messages {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 8px;
+  border-left: 3px solid #38bdf8;
+  backdrop-filter: blur(8px);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.messageHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.messageAuthor {
+  font-weight: 600;
+  color: #38bdf8;
+  font-size: 14px;
+}
+
+.messageTime {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.messageText {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #ffffff;
+  word-wrap: break-word;
+}
+
+.messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+

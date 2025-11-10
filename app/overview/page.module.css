@@ -1,0 +1,103 @@
+.layout {
+  width: min(960px, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+}
+
+.content {
+  padding: 32px 24px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 32px;
+  color: var(--text);
+}
+
+.loading,
+.error {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--error);
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.channelInfo {
+  padding: 24px;
+  background: rgba(30, 41, 59, 0.85);
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.1);
+}
+
+.channelTitle {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.channelDescription {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.metric {
+  padding: 24px;
+  background: rgba(30, 41, 59, 0.85);
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  text-align: center;
+}
+
+.metricValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.metricLabel {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@media (max-width: 640px) {
+  .layout {
+    border-radius: 0;
+    min-height: 100vh;
+  }
+
+  .content {
+    padding: 24px 16px;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+}
+

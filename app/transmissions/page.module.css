@@ -1,34 +1,9 @@
-:root {
-  color-scheme: dark light;
-  --bg: #0f172a;
-  --panel: #1e293b;
-  --accent: #38bdf8;
-  --text: #e2e8f0;
-  --text-muted: #94a3b8;
-  --error: #f87171;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .layout {
   width: min(960px, 100%);
-  min-height: 95vh;
+  min-height: 100vh;
+  margin: 0 auto;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
   background: rgba(15, 23, 42, 0.85);
   border-radius: 16px;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -45,18 +20,18 @@ body {
   background: rgba(30, 41, 59, 0.8);
 }
 
-.stream-info {
+.streamInfo {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.stream-status {
+.streamStatus {
   font-size: 14px;
   color: var(--text-muted);
 }
 
-.stream-title {
+.streamTitle {
   font-size: 20px;
   font-weight: 600;
   color: var(--text);
@@ -127,7 +102,7 @@ body {
   color: var(--text-muted);
 }
 
-.status-error {
+.statusError {
   color: var(--error);
 }
 
@@ -148,3 +123,4 @@ body {
     width: 100%;
   }
 }
+
