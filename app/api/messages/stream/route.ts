@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
     async start(controller) {
       const youtube = createYoutubeClient(apiKey);
       let nextPageToken: string | undefined = undefined;
-      let pollingInterval = 2000;
+      const MIN_POLLING_INTERVAL = 5000; // Minimum 5 seconds to save quota
+      let pollingInterval = MIN_POLLING_INTERVAL;
       let timer: NodeJS.Timeout | null = null;
 
       const safeEnqueue = (data: Uint8Array) => {
@@ -64,7 +65,9 @@ export async function GET(request: NextRequest) {
           }
 
           nextPageToken = data.nextPageToken ?? undefined;
-          pollingInterval = data.pollingIntervalMillis ?? 2000;
+          // Use YouTube's recommended interval, but never less than minimum
+          const youtubeInterval = data.pollingIntervalMillis ?? MIN_POLLING_INTERVAL;
+          pollingInterval = Math.max(youtubeInterval, MIN_POLLING_INTERVAL);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
           safeEnqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`));

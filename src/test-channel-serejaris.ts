@@ -1,6 +1,12 @@
 import dotenv from "dotenv";
 import { youtube_v3 } from "googleapis";
-import { createYoutubeClient, fetchMessages, formatMessage, getLiveBroadcasts, getLiveChatId } from "./utils/youtube-api";
+import {
+  createYoutubeClient,
+  fetchMessages,
+  formatMessage,
+  getActiveLiveBroadcastEfficient,
+  getChannelVideosEfficient,
+} from "./utils/youtube-api";
 
 dotenv.config();
 
@@ -37,16 +43,6 @@ async function getChannelData(channelId: string) {
   return response.data.items?.[0];
 }
 
-async function getChannelVideos(channelId: string, maxResults: number = 10) {
-  const response = await youtube.search.list({
-    part: ["snippet"],
-    channelId,
-    type: ["video"],
-    order: "date",
-    maxResults,
-  } as youtube_v3.Params$Resource$Search$List);
-  return response.data?.items || [];
-}
 
 async function testChannel() {
   try {
@@ -74,44 +70,31 @@ async function testChannel() {
       console.log("Ссылка:", `https://www.youtube.com/channel/${channelId}`);
     }
 
-    console.log("\n=== Последние видео ===");
-    const videos = await getChannelVideos(channelId, 5);
+    console.log("\n=== Последние видео (efficient: 3 units) ===");
+    const videos = await getChannelVideosEfficient(youtube, channelId, 5);
     if (videos.length > 0) {
-      videos.forEach((video: any, index: number) => {
-        console.log(`${index + 1}. ${video.snippet?.title}`);
-        console.log(`   Опубликовано: ${video.snippet?.publishedAt}`);
-        console.log(`   ID видео: ${video.id?.videoId}`);
+      videos.forEach((video, index: number) => {
+        console.log(`${index + 1}. ${video.title}`);
+        console.log(`   Опубликовано: ${video.publishedAt}`);
+        console.log(`   ID видео: ${video.id}`);
         console.log();
       });
     } else {
       console.log("Видео не найдены");
     }
 
-    console.log("\n=== Поиск активной трансляции ===");
-    const liveBroadcasts = await getLiveBroadcasts(youtube, channelId);
-    if (liveBroadcasts.length === 0) {
+    console.log("\n=== Поиск активной трансляции (efficient: 3 units) ===");
+    const liveBroadcast = await getActiveLiveBroadcastEfficient(youtube, channelId);
+    if (!liveBroadcast) {
       console.log("❌ Активных трансляций не найдено");
       console.log("\n✅ Тест завершен. API работает корректно, но трансляций нет.");
       return;
     }
 
-    const firstLiveVideo = liveBroadcasts[0];
-    const videoId = firstLiveVideo.id?.videoId;
-    if (!videoId) {
-      throw new Error("Не удалось получить ID видео трансляции");
-    }
+    const { videoId, title, liveChatId: chatId } = liveBroadcast;
 
-    console.log(`Найдена трансляция: ${firstLiveVideo.snippet?.title}`);
+    console.log(`Найдена трансляция: ${title}`);
     console.log(`ID видео: ${videoId}`);
-
-    console.log("\n=== Получение Live Chat ID ===");
-    const chatId = await getLiveChatId(youtube, videoId);
-    if (!chatId) {
-      console.log("❌ Не удалось получить Live Chat ID");
-      console.log("Возможно, трансляция не имеет активного чата или чат отключен");
-      return;
-    }
-
     console.log(`✅ Live Chat ID найден: ${chatId}`);
 
     console.log("\n=== Тестирование получения сообщений ===");

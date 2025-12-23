@@ -5,6 +5,38 @@ export function createYoutubeClient(apiKey: string) {
   return google.youtube({ version: "v3", auth: apiKey });
 }
 
+// =============================================================================
+// SIMPLE IN-MEMORY CACHE
+// =============================================================================
+
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
+const cache = new Map<string, CacheEntry<unknown>>();
+
+function getCached<T>(key: string): T | undefined {
+  const entry = cache.get(key) as CacheEntry<T> | undefined;
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) {
+    cache.delete(key);
+    return undefined;
+  }
+  return entry.value;
+}
+
+function setCache<T>(key: string, value: T, ttlMs: number): void {
+  cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+}
+
+// Cache TTLs
+const CACHE_TTL = {
+  channelStats: 5 * 60 * 1000, // 5 minutes
+  liveBroadcast: 60 * 1000,    // 1 minute
+  uploadsPlaylist: 60 * 60 * 1000, // 1 hour (rarely changes)
+} as const;
+
 export async function getLiveBroadcasts(youtube: youtube_v3.Youtube, channelId: string) {
   const startTime = Date.now();
   try {
@@ -114,14 +146,29 @@ export function formatMessage(item: youtube_v3.Schema$LiveChatMessage) {
   return { time, author, text, messageId, publishedAt };
 }
 
-export async function getChannelStats(youtube: youtube_v3.Youtube, channelId: string) {
+interface ChannelStats {
+  title: string;
+  description: string;
+  subscriberCount: string;
+  videoCount: string;
+  viewCount: string;
+}
+
+export async function getChannelStats(youtube: youtube_v3.Youtube, channelId: string): Promise<ChannelStats | null> {
+  // Check cache first
+  const cacheKey = `channelStats:${channelId}`;
+  const cached = getCached<ChannelStats>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const startTime = Date.now();
   try {
     const response = await youtube.channels.list({
       part: ["snippet", "statistics"],
       id: [channelId],
     });
-    
+
     const responseTime = Date.now() - startTime;
     await logApiRequest(
       "getChannelStats",
@@ -130,19 +177,23 @@ export async function getChannelStats(youtube: youtube_v3.Youtube, channelId: st
       "success",
       responseTime
     );
-    
+
     const channel = response.data.items?.[0];
     if (!channel) {
       return null;
     }
-    
-    return {
+
+    const result = {
       title: channel.snippet?.title ?? "",
       description: channel.snippet?.description ?? "",
       subscriberCount: channel.statistics?.subscriberCount ?? "0",
       videoCount: channel.statistics?.videoCount ?? "0",
       viewCount: channel.statistics?.viewCount ?? "0",
     };
+
+    // Cache the result
+    setCache(cacheKey, result, CACHE_TTL.channelStats);
+    return result;
   } catch (error) {
     const responseTime = Date.now() - startTime;
     await logApiRequest(
@@ -257,8 +308,16 @@ export async function getChannelVideosWithDetails(youtube: youtube_v3.Youtube, c
 /**
  * Get uploads playlist ID for a channel (1 quota unit)
  * Uses channels.list instead of search.list
+ * Cached for 1 hour (rarely changes)
  */
 export async function getUploadsPlaylistId(youtube: youtube_v3.Youtube, channelId: string): Promise<string | null> {
+  // Check cache first (uploads playlist ID rarely changes)
+  const cacheKey = `uploadsPlaylist:${channelId}`;
+  const cached = getCached<string>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const startTime = Date.now();
   try {
     const response = await youtube.channels.list({
@@ -273,7 +332,13 @@ export async function getUploadsPlaylistId(youtube: youtube_v3.Youtube, channelI
       "success",
       responseTime
     );
-    return response.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads ?? null;
+    const playlistId = response.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads ?? null;
+
+    // Cache the result
+    if (playlistId) {
+      setCache(cacheKey, playlistId, CACHE_TTL.uploadsPlaylist);
+    }
+    return playlistId;
   } catch (error) {
     const responseTime = Date.now() - startTime;
     await logApiRequest(

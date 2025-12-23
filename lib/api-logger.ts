@@ -21,6 +21,75 @@ export const QUOTA_COSTS = {
   "playlistItems.list": 1,
 } as const;
 
+// Quota limits
+export const DAILY_QUOTA_LIMIT = 10000;
+export const QUOTA_WARNING_THRESHOLD = 0.5; // 50%
+export const QUOTA_BLOCK_THRESHOLD = 0.8; // 80%
+
+// In-memory cache for quota (updates every check, avoids DB hits)
+let cachedQuotaUsed = 0;
+let cachedQuotaTimestamp = 0;
+const QUOTA_CACHE_TTL = 60000; // 1 minute
+
+export class QuotaExceededError extends Error {
+  constructor(used: number, limit: number) {
+    super(`API quota exceeded: ${used}/${limit} units used (${Math.round(used / limit * 100)}%)`);
+    this.name = "QuotaExceededError";
+  }
+}
+
+/**
+ * Get today's quota usage from database
+ */
+async function getTodayQuotaUsage(): Promise<number> {
+  const now = Date.now();
+  if (now - cachedQuotaTimestamp < QUOTA_CACHE_TTL && cachedQuotaUsed > 0) {
+    return cachedQuotaUsed;
+  }
+
+  const client = await pool.connect();
+  try {
+    const result = await client.query(`
+      SELECT COALESCE(SUM(quota_cost), 0) as total
+      FROM api_request_logs
+      WHERE timestamp >= (NOW() AT TIME ZONE 'America/Los_Angeles')::date
+    `);
+    cachedQuotaUsed = parseInt(result.rows[0]?.total || "0", 10);
+    cachedQuotaTimestamp = now;
+    return cachedQuotaUsed;
+  } catch {
+    return cachedQuotaUsed; // Return cached value on error
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Check if quota allows the requested operation
+ * @throws QuotaExceededError if quota would be exceeded
+ */
+export async function checkQuota(endpointType: keyof typeof QUOTA_COSTS): Promise<{ used: number; remaining: number; blocked: boolean }> {
+  const cost = QUOTA_COSTS[endpointType] || 0;
+  const used = await getTodayQuotaUsage();
+  const remaining = DAILY_QUOTA_LIMIT - used;
+  const usageRatio = used / DAILY_QUOTA_LIMIT;
+
+  // Block if over threshold
+  if (usageRatio >= QUOTA_BLOCK_THRESHOLD) {
+    throw new QuotaExceededError(used, DAILY_QUOTA_LIMIT);
+  }
+
+  // Warn if approaching limit (emit event for monitoring)
+  if (usageRatio >= QUOTA_WARNING_THRESHOLD) {
+    logEmitter.emit("quotaWarning", { used, limit: DAILY_QUOTA_LIMIT, ratio: usageRatio });
+  }
+
+  // Update cache with expected new usage
+  cachedQuotaUsed = used + cost;
+
+  return { used, remaining, blocked: false };
+}
+
 export interface ApiLogEntry {
   id?: number;
   timestamp: Date;

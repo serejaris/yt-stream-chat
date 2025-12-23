@@ -4,16 +4,14 @@ export function createYoutubeClient(apiKey: string) {
   return google.youtube({ version: "v3", auth: apiKey });
 }
 
-export async function getLiveBroadcasts(youtube: youtube_v3.Youtube, channelId: string) {
-  const response = await youtube.search.list({
-    part: ["snippet"],
-    channelId,
-    type: ["video"],
-    eventType: "live",
-    maxResults: 10,
-  } as any);
-  return response.data?.items ?? [];
-}
+// Re-export efficient methods from lib (3 units instead of 100 for search.list)
+export {
+  getActiveLiveBroadcastEfficient,
+  getChannelVideosEfficient,
+  getUploadsPlaylistId,
+  getRecentVideosFromPlaylist,
+  findActiveLiveBroadcast,
+} from "../../lib/youtube-api";
 
 export async function getLiveChatId(youtube: youtube_v3.Youtube, videoId: string) {
   const response = await youtube.videos.list({
