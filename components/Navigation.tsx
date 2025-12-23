@@ -27,6 +27,12 @@ export default function Navigation() {
       >
         Видео
       </Link>
+      <Link
+        href="/quota"
+        className={`${styles.link} ${pathname === "/quota" ? styles.active : ""}`}
+      >
+        Квота
+      </Link>
     </nav>
   );
 }
