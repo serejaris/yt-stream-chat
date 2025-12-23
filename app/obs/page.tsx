@@ -54,6 +54,10 @@ export default function OBSPage() {
   const [feedMessages, setFeedMessages] = useState<FeedMessage[]>([]);
   const feedTimersRef = useRef<Map<string, { exitTimer: NodeJS.Timeout; removeTimer: NodeJS.Timeout }>>(new Map());
 
+  // Mode switcher visibility
+  const [switcherVisible, setSwitcherVisible] = useState(false);
+  const switcherTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const eventSourceRef = useRef<EventSource | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const checkStreamTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -73,6 +77,30 @@ export default function OBSPage() {
       localStorage.setItem("obsOverlayMode", mode);
     }
   }, [mode]);
+
+  // Mouse movement handler for switcher visibility
+  useEffect(() => {
+    const handleMouseMove = () => {
+      setSwitcherVisible(true);
+
+      if (switcherTimerRef.current) {
+        clearTimeout(switcherTimerRef.current);
+      }
+
+      switcherTimerRef.current = setTimeout(() => {
+        setSwitcherVisible(false);
+      }, 3000);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (switcherTimerRef.current) {
+        clearTimeout(switcherTimerRef.current);
+      }
+    };
+  }, []);
 
   // Clear feed messages and timers when switching to manual mode
   useEffect(() => {
@@ -333,6 +361,10 @@ export default function OBSPage() {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
+      }
+      if (switcherTimerRef.current) {
+        clearTimeout(switcherTimerRef.current);
+        switcherTimerRef.current = null;
       }
       // Clean up all feed message timers
       feedTimersRef.current.forEach((timers) => {
