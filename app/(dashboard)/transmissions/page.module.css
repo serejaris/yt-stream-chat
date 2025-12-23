@@ -1,0 +1,267 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 1.5rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.streamInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.dotActive {
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+.streamTitle {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.controls {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btnPrimary {
+  background: var(--accent);
+  color: #000;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+.btnSecondary {
+  background: var(--panel);
+  color: var(--text);
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+.btnOutline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+.btnPrimary:hover, .btnSecondary:hover, .btnOutline:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.overlayPanel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.overlayStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.overlayActive {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.overlayAuthor {
+  font-weight: 700;
+}
+
+.overlayEmpty {
+  color: var(--text-muted);
+}
+
+.clearOverlayBtn {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.content {
+  flex: 1;
+  background: var(--sidebar);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.emptyChat {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  gap: 1rem;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  opacity: 0.3;
+}
+
+.message {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  align-self: flex-start;
+  max-width: 80%;
+  transition: all 0.2s ease;
+}
+
+.messageActive {
+  border-color: var(--accent);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+}
+
+.messageHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  gap: 2rem;
+}
+
+.messageAuthor {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.messageTime {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.messageBody {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.messageText {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.overlayBtn {
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  opacity: 0;
+}
+
+.message:hover .overlayBtn {
+  opacity: 1;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.footerStatus {
+  display: flex;
+  flex-direction: column;
+}
+
+.errorDetails {
+  color: var(--error);
+  font-size: 0.75rem;
+}
+
+.apiIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.apiDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.apiActive {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.apiLabel {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .controls {
+    width: 100%;
+    margin-top: 1rem;
+  }
+  .controls button {
+    flex: 1;
+  }
+}

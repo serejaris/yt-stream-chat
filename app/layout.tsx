@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navigation from "@/components/Navigation";
 
 export const metadata: Metadata = {
-  title: "YouTube Live Chat",
-  description: "Помощник по YouTube каналу",
+  title: "YouTube Studio Helper",
+  description: "Помощник по управлению трансляциями и чатом",
 };
 
 export default function RootLayout({
@@ -18,8 +17,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-
-
-
-

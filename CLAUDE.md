@@ -57,7 +57,30 @@ npm run test:serejaris  # Тест получения chat ID
 
 ## API Quota
 
-YouTube API имеет дневной лимит квоты. `search.list` стоит 100 единиц — используй кнопку загрузки на /videos вместо автозапросов.
+YouTube API использует эффективные методы (1 ед. каждый):
+- `channels.list` — uploads playlist ID
+- `playlistItems.list` — видео из плейлиста
+- `videos.list` — детали видео и live статус
+
+Избегай `search.list` (100 единиц).
+
+## OBS Overlay API
+
+Отправка сообщения в оверлей (через Node.js, curl глючит с пробелами):
+
+```bash
+node -e "
+const http = require('http');
+const data = JSON.stringify({author: 'Имя', message: 'Текст сообщения'});
+const req = http.request({
+  hostname: 'localhost', port: 3000, path: '/api/overlay',
+  method: 'POST', headers: {'Content-Type': 'application/json'}
+}, res => { let b=''; res.on('data', c => b+=c); res.on('end', () => console.log(b)); });
+req.write(data); req.end();
+"
+```
+
+Очистка: `curl -X DELETE http://localhost:3000/api/overlay`
 
 ## Database
 

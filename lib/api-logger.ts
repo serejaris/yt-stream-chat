@@ -18,6 +18,7 @@ export const QUOTA_COSTS = {
   "videos.list": 1,
   "channels.list": 1,
   "liveChatMessages.list": 5,
+  "playlistItems.list": 1,
 } as const;
 
 export interface ApiLogEntry {

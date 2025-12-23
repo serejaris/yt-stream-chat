@@ -328,65 +328,81 @@ export default function TransmissionsPage() {
   }, [isMonitoringEnabled, checkForStream]);
 
   return (
-    <div className={styles.layout}>
-      <Navigation />
+    <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.streamInfo}>
-          <span className={`${styles.streamStatus} ${isError ? styles.statusError : ""}`}>
-            {streamStatus}
-          </span>
-          <h1 className={styles.streamTitle}>{streamTitle}</h1>
+          <div className={styles.statusBadge}>
+            <span className={`${styles.statusDot} ${!isError && liveChatId ? styles.dotActive : ""}`} />
+            <span className={`${styles.streamStatus} ${isError ? styles.statusError : ""}`}>
+              {streamStatus}
+            </span>
+          </div>
+          <h1 className={styles.streamTitle}>{streamTitle || "Нет активной трансляции"}</h1>
         </div>
         <div className={styles.controls}>
           <button
             onClick={toggleMonitoring}
             type="button"
-            className={isMonitoringEnabled ? styles.monitoringActive : styles.monitoringInactive}
+            className={isMonitoringEnabled ? styles.btnPrimary : styles.btnSecondary}
           >
-            {isMonitoringEnabled ? "Выключить мониторинг" : "Включить мониторинг"}
+            {isMonitoringEnabled ? "⏸️ Пауза" : "▶️ Запуск"}
           </button>
-          <button onClick={() => checkForStreamRef.current?.()} type="button">
-            Обновить
+          <button onClick={() => checkForStreamRef.current?.()} type="button" className={styles.btnOutline}>
+            🔄 Обновить
           </button>
         </div>
       </header>
+
       <div className={styles.overlayPanel}>
         <div className={styles.overlayStatus}>
           {overlayMessage ? (
             <>
-              <span className={styles.overlayActive}>В оверлее:</span>
+              <span className={styles.overlayActive}>📺 В оверлее:</span>
               <span className={styles.overlayAuthor}>{overlayMessage.author}</span>
             </>
           ) : (
-            <span className={styles.overlayEmpty}>Оверлей пуст</span>
+            <span className={styles.overlayEmpty}>📭 Оверлей пуст</span>
           )}
         </div>
         {overlayMessage && (
           <button onClick={clearOverlay} className={styles.clearOverlayBtn} type="button">
-            Убрать из оверлея
+            Убрать
           </button>
         )}
       </div>
-      <main className={styles.content}>
-        <ul className={styles.messages}>
-          {messages.map((message, index) => (
-            <li key={index} className={`${styles.message} ${activeMessageIndex === index ? styles.messageActive : ""}`}>
-              <time>{message.time}</time>
-              <strong>{message.author}</strong>
-              <button
-                onClick={() => showInOverlay(message, index)}
-                className={styles.overlayBtn}
-                type="button"
-                title="Показать в оверлее"
-              >
-                📺
-              </button>
-              <p>{message.text}</p>
-            </li>
-          ))}
+
+      <div className={styles.content}>
+        <div className={styles.messages}>
+          {messages.length === 0 ? (
+            <div className={styles.emptyChat}>
+              <div className={styles.emptyIcon}>💬</div>
+              <p>Ожидание сообщений...</p>
+            </div>
+          ) : (
+            messages.map((message, index) => (
+              <div key={index} className={`${styles.message} ${activeMessageIndex === index ? styles.messageActive : ""}`}>
+                <div className={styles.messageHeader}>
+                  <span className={styles.messageAuthor}>{message.author}</span>
+                  <span className={styles.messageTime}>{message.time}</span>
+                </div>
+                <div className={styles.messageBody}>
+                  <p className={styles.messageText}>{message.text}</p>
+                  <button
+                    onClick={() => showInOverlay(message, index)}
+                    className={styles.overlayBtn}
+                    type="button"
+                    title="Показать в оверлее"
+                  >
+                    Вывести
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
           <div ref={messagesEndRef} />
-        </ul>
-      </main>
+        </div>
+      </div>
+
       <footer className={styles.footer}>
         <div className={styles.footerStatus}>
           <span className={pollingError ? styles.statusError : ""}>{pollingStatus}</span>
@@ -394,10 +410,10 @@ export default function TransmissionsPage() {
             <span className={styles.errorDetails}>{errorDetails}</span>
           )}
         </div>
-        <span className={styles.apiIndicator}>
+        <div className={styles.apiIndicator}>
           <span className={`${styles.apiDot} ${apiActivity ? styles.apiActive : ""}`} />
-          API
-        </span>
+          <span className={styles.apiLabel}>YouTube API</span>
+        </div>
       </footer>
     </div>
   );

@@ -224,21 +224,208 @@ export async function getVideosDetails(youtube: youtube_v3.Youtube, videoIds: st
 
 export async function getChannelVideosWithDetails(youtube: youtube_v3.Youtube, channelId: string, maxResults: number = 50) {
   const searchResults = await getChannelVideos(youtube, channelId, maxResults);
-  
+
   if (searchResults.length === 0) {
     return [];
   }
-  
+
   const videoIds = searchResults
     .map((item) => item.id?.videoId)
     .filter((id): id is string => !!id);
-  
+
   if (videoIds.length === 0) {
     return [];
   }
-  
+
   const videosDetails = await getVideosDetails(youtube, videoIds);
-  
+
+  return videosDetails.map((video) => ({
+    id: video.id ?? "",
+    title: video.snippet?.title ?? "",
+    description: video.snippet?.description ?? "",
+    publishedAt: video.snippet?.publishedAt ?? "",
+    thumbnail: video.snippet?.thumbnails?.high?.url ?? video.snippet?.thumbnails?.default?.url ?? "",
+    channelId: video.snippet?.channelId ?? "",
+    channelTitle: video.snippet?.channelTitle ?? "",
+  }));
+}
+
+// =============================================================================
+// QUOTA-EFFICIENT FUNCTIONS (1 unit each instead of 100)
+// =============================================================================
+
+/**
+ * Get uploads playlist ID for a channel (1 quota unit)
+ * Uses channels.list instead of search.list
+ */
+export async function getUploadsPlaylistId(youtube: youtube_v3.Youtube, channelId: string): Promise<string | null> {
+  const startTime = Date.now();
+  try {
+    const response = await youtube.channels.list({
+      part: ["contentDetails"],
+      id: [channelId],
+    });
+    const responseTime = Date.now() - startTime;
+    await logApiRequest(
+      "getUploadsPlaylistId",
+      "channels.list",
+      { channelId },
+      "success",
+      responseTime
+    );
+    return response.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads ?? null;
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    await logApiRequest(
+      "getUploadsPlaylistId",
+      "channels.list",
+      { channelId },
+      "error",
+      responseTime,
+      error instanceof Error ? error.message : "Unknown error"
+    );
+    throw error;
+  }
+}
+
+/**
+ * Get recent videos from uploads playlist (1 quota unit)
+ * Uses playlistItems.list instead of search.list
+ */
+export async function getRecentVideosFromPlaylist(
+  youtube: youtube_v3.Youtube,
+  playlistId: string,
+  maxResults: number = 10
+): Promise<string[]> {
+  const startTime = Date.now();
+  try {
+    const response = await youtube.playlistItems.list({
+      part: ["contentDetails"],
+      playlistId,
+      maxResults,
+    });
+    const responseTime = Date.now() - startTime;
+    await logApiRequest(
+      "getRecentVideosFromPlaylist",
+      "playlistItems.list",
+      { playlistId, maxResults },
+      "success",
+      responseTime
+    );
+    return response.data.items
+      ?.map((item) => item.contentDetails?.videoId)
+      .filter((id): id is string => !!id) ?? [];
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    await logApiRequest(
+      "getRecentVideosFromPlaylist",
+      "playlistItems.list",
+      { playlistId, maxResults },
+      "error",
+      responseTime,
+      error instanceof Error ? error.message : "Unknown error"
+    );
+    throw error;
+  }
+}
+
+/**
+ * Find active live broadcast from video IDs (1 quota unit)
+ * Uses videos.list with liveStreamingDetails instead of search.list
+ */
+export async function findActiveLiveBroadcast(
+  youtube: youtube_v3.Youtube,
+  videoIds: string[]
+): Promise<{ videoId: string; title: string; liveChatId: string | null } | null> {
+  if (videoIds.length === 0) return null;
+
+  const startTime = Date.now();
+  try {
+    const response = await youtube.videos.list({
+      part: ["snippet", "liveStreamingDetails"],
+      id: videoIds,
+    });
+    const responseTime = Date.now() - startTime;
+    await logApiRequest(
+      "findActiveLiveBroadcast",
+      "videos.list",
+      { videoCount: videoIds.length },
+      "success",
+      responseTime
+    );
+
+    const liveVideo = response.data.items?.find(
+      (video) => video.liveStreamingDetails?.activeLiveChatId
+    );
+
+    if (!liveVideo) return null;
+
+    return {
+      videoId: liveVideo.id ?? "",
+      title: liveVideo.snippet?.title ?? "",
+      liveChatId: liveVideo.liveStreamingDetails?.activeLiveChatId ?? null,
+    };
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    await logApiRequest(
+      "findActiveLiveBroadcast",
+      "videos.list",
+      { videoCount: videoIds.length },
+      "error",
+      responseTime,
+      error instanceof Error ? error.message : "Unknown error"
+    );
+    throw error;
+  }
+}
+
+/**
+ * Get active live broadcast efficiently (3 quota units total)
+ * Replaces getLiveBroadcasts which uses search.list (100 units)
+ */
+export async function getActiveLiveBroadcastEfficient(
+  youtube: youtube_v3.Youtube,
+  channelId: string
+): Promise<{ videoId: string; title: string; liveChatId: string } | null> {
+  // Step 1: Get uploads playlist ID (1 unit)
+  const uploadsPlaylistId = await getUploadsPlaylistId(youtube, channelId);
+  if (!uploadsPlaylistId) return null;
+
+  // Step 2: Get recent videos from playlist (1 unit)
+  const recentVideoIds = await getRecentVideosFromPlaylist(youtube, uploadsPlaylistId, 10);
+  if (recentVideoIds.length === 0) return null;
+
+  // Step 3: Find active live broadcast (1 unit)
+  const liveBroadcast = await findActiveLiveBroadcast(youtube, recentVideoIds);
+  if (!liveBroadcast?.liveChatId) return null;
+
+  return {
+    videoId: liveBroadcast.videoId,
+    title: liveBroadcast.title,
+    liveChatId: liveBroadcast.liveChatId,
+  };
+}
+
+/**
+ * Get channel videos efficiently (2 quota units total)
+ * Replaces getChannelVideosWithDetails which uses search.list (100+ units)
+ */
+export async function getChannelVideosEfficient(
+  youtube: youtube_v3.Youtube,
+  channelId: string,
+  maxResults: number = 50
+) {
+  // Step 1: Get uploads playlist ID (1 unit)
+  const uploadsPlaylistId = await getUploadsPlaylistId(youtube, channelId);
+  if (!uploadsPlaylistId) return [];
+
+  // Step 2: Get video IDs from playlist (1 unit)
+  const videoIds = await getRecentVideosFromPlaylist(youtube, uploadsPlaylistId, maxResults);
+  if (videoIds.length === 0) return [];
+
+  // Step 3: Get video details (1 unit)
+  const videosDetails = await getVideosDetails(youtube, videoIds);
+
   return videosDetails.map((video) => ({
     id: video.id ?? "",
     title: video.snippet?.title ?? "",
