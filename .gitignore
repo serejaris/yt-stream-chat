@@ -46,3 +46,10 @@ temp/
 # Тестовое покрытие
 coverage/
 .nyc_output/
+
+# Git worktrees
+worktrees/
+.worktrees/
+
+# Repomix
+repomix-output.*
