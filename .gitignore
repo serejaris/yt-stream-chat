@@ -19,6 +19,7 @@ dist/
 build/
 *.js.map
 *.d.ts
+*.tsbuildinfo
 
 # IDE и редакторы
 .vscode/
