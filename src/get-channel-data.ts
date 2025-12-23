@@ -1,5 +1,9 @@
 import dotenv from "dotenv";
 import { google } from "googleapis";
+import {
+  getActiveLiveBroadcastEfficient,
+  getChannelVideosEfficient,
+} from "./utils/youtube-api";
 
 dotenv.config();
 
@@ -47,38 +51,6 @@ async function getChannelData(channelId: string) {
   return response.data.items?.[0];
 }
 
-async function getChannelVideos(channelId: string, maxResults: number = 10) {
-  const response = await youtube.search.list({
-    part: ["snippet"],
-    channelId: channelId,
-    type: "video",
-    order: "date",
-    maxResults: maxResults,
-  } as any);
-  return response.data?.items || [];
-}
-
-async function getLiveBroadcasts(channelId: string) {
-  const response = await youtube.search.list({
-    part: ["snippet"],
-    channelId: channelId,
-    type: "video",
-    eventType: "live",
-    maxResults: 10,
-  } as any);
-  return response.data?.items || [];
-}
-
-async function getUpcomingBroadcasts(channelId: string) {
-  const response = await youtube.search.list({
-    part: ["snippet"],
-    channelId: channelId,
-    type: "video",
-    eventType: "upcoming",
-    maxResults: 10,
-  } as any);
-  return response.data?.items || [];
-}
 
 async function run() {
   try {
@@ -122,44 +94,32 @@ async function run() {
       console.log("Ссылка:", `https://www.youtube.com/channel/${targetChannelId}`);
     }
 
-    console.log("\n=== Последние видео ===");
-    const videos = await getChannelVideos(targetChannelId, 5);
+    console.log("\n=== Последние видео (efficient: 3 units) ===");
+    const videos = await getChannelVideosEfficient(youtube, targetChannelId, 5);
     if (videos.length > 0) {
-      videos.forEach((video: any, index: number) => {
-        console.log(`${index + 1}. ${video.snippet?.title}`);
-        console.log(`   Опубликовано: ${video.snippet?.publishedAt}`);
-        console.log(`   ID видео: ${video.id?.videoId}`);
+      videos.forEach((video, index: number) => {
+        console.log(`${index + 1}. ${video.title}`);
+        console.log(`   Опубликовано: ${video.publishedAt}`);
+        console.log(`   ID видео: ${video.id}`);
         console.log();
       });
     } else {
       console.log("Видео не найдены");
     }
 
-    console.log("=== Активные трансляции ===");
-    const liveBroadcasts = await getLiveBroadcasts(targetChannelId);
-    if (liveBroadcasts.length > 0) {
-      liveBroadcasts.forEach((broadcast: any, index: number) => {
-        console.log(`${index + 1}. ${broadcast.snippet?.title}`);
-        console.log(`   ID видео: ${broadcast.id?.videoId}`);
-        console.log(`   Начало: ${broadcast.snippet?.publishedAt}`);
-        console.log();
-      });
+    console.log("=== Активные трансляции (efficient: 3 units) ===");
+    const liveBroadcast = await getActiveLiveBroadcastEfficient(youtube, targetChannelId);
+    if (liveBroadcast) {
+      console.log(`1. ${liveBroadcast.title}`);
+      console.log(`   ID видео: ${liveBroadcast.videoId}`);
+      console.log(`   Live Chat ID: ${liveBroadcast.liveChatId}`);
     } else {
       console.log("Активных трансляций нет");
     }
 
-    console.log("=== Предстоящие трансляции ===");
-    const upcomingBroadcasts = await getUpcomingBroadcasts(targetChannelId);
-    if (upcomingBroadcasts.length > 0) {
-      upcomingBroadcasts.forEach((broadcast: any, index: number) => {
-        console.log(`${index + 1}. ${broadcast.snippet?.title}`);
-        console.log(`   ID видео: ${broadcast.id?.videoId}`);
-        console.log(`   Запланировано: ${broadcast.snippet?.publishedAt}`);
-        console.log();
-      });
-    } else {
-      console.log("Предстоящих трансляций нет");
-    }
+    // Note: getUpcomingBroadcasts removed - efficient method focuses on active broadcasts only
+    console.log("\n=== Предстоящие трансляции ===");
+    console.log("(Проверка предстоящих трансляций отключена для экономии квоты)");
 
   } catch (error) {
     if (error instanceof Error) {

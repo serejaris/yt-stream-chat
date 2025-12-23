@@ -70,10 +70,11 @@
 }
 
 .progressBar {
+  position: relative;
   height: 12px;
   background: var(--sidebar);
   border-radius: 6px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .progressFill {
@@ -166,6 +167,107 @@
   text-align: center;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* Warning banner */
+.warningBanner {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid;
+  align-items: flex-start;
+}
+
+.warningIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.warningBanner strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.warningBanner p {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.875rem;
+}
+
+/* Quick stats */
+.quickStats {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.statValue {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* Progress bar markers */
+.marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--text-muted);
+  opacity: 0.3;
+}
+
+/* Hourly chart */
+.chartContainer {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 120px;
+  margin-top: 1rem;
+  padding: 0.5rem 0;
+}
+
+.chartBar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  gap: 4px;
+}
+
+.barFill {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease;
+  cursor: pointer;
+}
+
+.barFill:hover {
+  opacity: 0.8;
+}
+
+.barLabel {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 @media (min-width: 1024px) {
