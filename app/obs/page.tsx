@@ -48,6 +48,7 @@ export default function OBSPage() {
     return "feed";
   });
   const [feedMessages, setFeedMessages] = useState<FeedMessage[]>([]);
+  const feedTimersRef = useRef<Map<string, { exitTimer: NodeJS.Timeout; removeTimer: NodeJS.Timeout }>>(new Map());
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -139,6 +140,52 @@ export default function OBSPage() {
     });
   };
 
+  const addFeedMessage = useCallback((author: string, text: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    const newMessage: FeedMessage = {
+      id,
+      author,
+      text,
+      createdAt: Date.now(),
+    };
+
+    setFeedMessages((prev) => {
+      const updated = [...prev, newMessage];
+      const maxMessages = 5;
+
+      // Remove oldest message if exceeds limit
+      if (updated.length > maxMessages) {
+        const removed = updated.shift();
+        if (removed) {
+          // Clear timers for removed message
+          const timers = feedTimersRef.current.get(removed.id);
+          if (timers) {
+            clearTimeout(timers.exitTimer);
+            clearTimeout(timers.removeTimer);
+            feedTimersRef.current.delete(removed.id);
+          }
+        }
+      }
+
+      return updated;
+    });
+
+    // Set timer to mark message as exiting after 5 seconds
+    const exitTimer = setTimeout(() => {
+      setFeedMessages((prev) =>
+        prev.map((msg) => (msg.id === id ? { ...msg, exiting: true } : msg))
+      );
+    }, 5000);
+
+    // Set timer to remove message after 5.3 seconds
+    const removeTimer = setTimeout(() => {
+      setFeedMessages((prev) => prev.filter((msg) => msg.id !== id));
+      feedTimersRef.current.delete(id);
+    }, 5300);
+
+    feedTimersRef.current.set(id, { exitTimer, removeTimer });
+  }, []);
+
   const stopStreaming = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -165,7 +212,13 @@ export default function OBSPage() {
           try {
             const data = JSON.parse(event.data);
             if (data.messages && Array.isArray(data.messages)) {
-              data.messages.forEach((msg: Message) => appendMessage(msg));
+              data.messages.forEach((msg: Message) => {
+                appendMessage(msg);
+                // Add to feed if in feed mode
+                if (mode === "feed") {
+                  addFeedMessage(msg.author, msg.text);
+                }
+              });
             }
           } catch (error) {
             console.error("Failed to parse SSE message:", error);
@@ -185,7 +238,7 @@ export default function OBSPage() {
         };
       }
     },
-    [isMonitoringEnabled]
+    [isMonitoringEnabled, mode, addFeedMessage]
   );
 
   const scheduleNextCheck = useCallback(() => {
@@ -266,6 +319,12 @@ export default function OBSPage() {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
+      // Clean up all feed message timers
+      feedTimersRef.current.forEach((timers) => {
+        clearTimeout(timers.exitTimer);
+        clearTimeout(timers.removeTimer);
+      });
+      feedTimersRef.current.clear();
     };
   }, [isMonitoringEnabled]);
 
