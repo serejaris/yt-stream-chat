@@ -21,6 +21,12 @@ export default function Navigation() {
       >
         Обзор
       </Link>
+      <Link
+        href="/videos"
+        className={`${styles.link} ${pathname === "/videos" ? styles.active : ""}`}
+      >
+        Видео
+      </Link>
     </nav>
   );
 }

@@ -29,6 +29,22 @@ export async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_message_id ON chat_messages(message_id);
       CREATE INDEX IF NOT EXISTS idx_video_id ON chat_messages(video_id);
       CREATE INDEX IF NOT EXISTS idx_published_at ON chat_messages(published_at DESC);
+      
+      CREATE TABLE IF NOT EXISTS api_request_logs (
+        id SERIAL PRIMARY KEY,
+        timestamp TIMESTAMPTZ DEFAULT NOW(),
+        endpoint_type VARCHAR(100) NOT NULL,
+        method_name VARCHAR(100) NOT NULL,
+        request_params JSONB,
+        status VARCHAR(20) NOT NULL,
+        error_message TEXT,
+        quota_cost INTEGER NOT NULL,
+        response_time_ms INTEGER NOT NULL
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_api_logs_timestamp ON api_request_logs(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_api_logs_endpoint_type ON api_request_logs(endpoint_type);
+      CREATE INDEX IF NOT EXISTS idx_api_logs_status ON api_request_logs(status);
     `);
   } finally {
     client.release();
@@ -133,4 +149,8 @@ export async function getMessages(
 export async function closeDatabase(): Promise<void> {
   await pool.end();
 }
+
+
+
+
 
