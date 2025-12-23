@@ -404,7 +404,39 @@ export default function OBSPage() {
 
   return (
     <div className={styles.container}>
-      {overlayMessage && (
+      {/* Mode switcher */}
+      <div className={`${styles.modeSwitcher} ${!switcherVisible ? styles.modeSwitcherHidden : ''}`}>
+        <button
+          className={`${styles.modeButton} ${mode === "feed" ? styles.modeButtonActive : ''}`}
+          onClick={() => setMode("feed")}
+        >
+          Лента
+        </button>
+        <button
+          className={`${styles.modeButton} ${mode === "manual" ? styles.modeButtonActive : ''}`}
+          onClick={() => setMode("manual")}
+        >
+          Ручной
+        </button>
+      </div>
+
+      {/* Feed mode */}
+      {mode === "feed" && (
+        <div className={styles.feed}>
+          {feedMessages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`${styles.feedMessage} ${msg.exiting ? styles.feedMessageExiting : ''}`}
+            >
+              <div className={styles.feedAuthor}>{msg.author}</div>
+              <div className={styles.feedText}>{msg.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Manual mode */}
+      {mode === "manual" && overlayMessage && (
         <div className={`${styles.overlay} ${isVisible ? styles.overlayVisible : styles.overlayHidden}`}>
           <div className={styles.overlayAuthor}>{overlayMessage.author}</div>
           <div className={styles.overlayText}>
