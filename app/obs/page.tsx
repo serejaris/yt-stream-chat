@@ -114,8 +114,10 @@ export default function OBSPage() {
     }
   }, [mode]);
 
-  // Polling for overlay messages
+  // Polling for overlay messages (manual mode only)
   useEffect(() => {
+    if (mode !== "manual") return;
+
     const pollOverlay = async () => {
       try {
         const response = await fetch("/api/overlay");
@@ -146,7 +148,7 @@ export default function OBSPage() {
     pollOverlay();
     const interval = setInterval(pollOverlay, 1500);
     return () => clearInterval(interval);
-  }, []);
+  }, [mode]);
 
   // Typewriter effect
   useEffect(() => {
