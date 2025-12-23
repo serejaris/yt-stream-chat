@@ -3,6 +3,10 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import styles from "./page.module.css";
 
+const FEED_MESSAGE_DISPLAY_TIME = 5000;
+const FEED_MESSAGE_ANIMATION_TIME = 300;
+const MAX_FEED_MESSAGES = 5;
+
 interface Message {
   time: string;
   author: string;
@@ -67,6 +71,18 @@ export default function OBSPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("obsOverlayMode", mode);
+    }
+  }, [mode]);
+
+  // Clear feed messages and timers when switching to manual mode
+  useEffect(() => {
+    if (mode === "manual") {
+      setFeedMessages([]);
+      feedTimersRef.current.forEach((timers) => {
+        clearTimeout(timers.exitTimer);
+        clearTimeout(timers.removeTimer);
+      });
+      feedTimersRef.current.clear();
     }
   }, [mode]);
 
@@ -149,12 +165,26 @@ export default function OBSPage() {
       createdAt: Date.now(),
     };
 
+    // Set timer to mark message as exiting
+    const exitTimer = setTimeout(() => {
+      setFeedMessages((prev) =>
+        prev.map((msg) => (msg.id === id ? { ...msg, exiting: true } : msg))
+      );
+    }, FEED_MESSAGE_DISPLAY_TIME);
+
+    // Set timer to remove message
+    const removeTimer = setTimeout(() => {
+      setFeedMessages((prev) => prev.filter((msg) => msg.id !== id));
+      feedTimersRef.current.delete(id);
+    }, FEED_MESSAGE_DISPLAY_TIME + FEED_MESSAGE_ANIMATION_TIME);
+
+    feedTimersRef.current.set(id, { exitTimer, removeTimer });
+
     setFeedMessages((prev) => {
       const updated = [...prev, newMessage];
-      const maxMessages = 5;
 
       // Remove oldest message if exceeds limit
-      if (updated.length > maxMessages) {
+      if (updated.length > MAX_FEED_MESSAGES) {
         const removed = updated.shift();
         if (removed) {
           // Clear timers for removed message
@@ -169,21 +199,6 @@ export default function OBSPage() {
 
       return updated;
     });
-
-    // Set timer to mark message as exiting after 5 seconds
-    const exitTimer = setTimeout(() => {
-      setFeedMessages((prev) =>
-        prev.map((msg) => (msg.id === id ? { ...msg, exiting: true } : msg))
-      );
-    }, 5000);
-
-    // Set timer to remove message after 5.3 seconds
-    const removeTimer = setTimeout(() => {
-      setFeedMessages((prev) => prev.filter((msg) => msg.id !== id));
-      feedTimersRef.current.delete(id);
-    }, 5300);
-
-    feedTimersRef.current.set(id, { exitTimer, removeTimer });
   }, []);
 
   const stopStreaming = useCallback(() => {
