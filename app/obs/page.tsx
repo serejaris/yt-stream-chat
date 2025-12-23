@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import styles from "./page.module.css";
 
-const FEED_MESSAGE_DISPLAY_TIME = 5000;
 const FEED_MESSAGE_ANIMATION_TIME = 300;
 const MAX_FEED_MESSAGES = 5;
 
@@ -52,7 +51,7 @@ export default function OBSPage() {
     return "feed";
   });
   const [feedMessages, setFeedMessages] = useState<FeedMessage[]>([]);
-  const feedTimersRef = useRef<Map<string, { exitTimer: NodeJS.Timeout; removeTimer: NodeJS.Timeout }>>(new Map());
+  const feedTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Mode switcher visibility
   const [switcherVisible, setSwitcherVisible] = useState(false);
@@ -106,10 +105,7 @@ export default function OBSPage() {
   useEffect(() => {
     if (mode === "manual") {
       setFeedMessages([]);
-      feedTimersRef.current.forEach((timers) => {
-        clearTimeout(timers.exitTimer);
-        clearTimeout(timers.removeTimer);
-      });
+      feedTimersRef.current.forEach((timer) => clearTimeout(timer));
       feedTimersRef.current.clear();
     }
   }, [mode]);
@@ -195,39 +191,35 @@ export default function OBSPage() {
       createdAt: Date.now(),
     };
 
-    // Set timer to mark message as exiting
-    const exitTimer = setTimeout(() => {
-      setFeedMessages((prev) =>
-        prev.map((msg) => (msg.id === id ? { ...msg, exiting: true } : msg))
-      );
-    }, FEED_MESSAGE_DISPLAY_TIME);
-
-    // Set timer to remove message
-    const removeTimer = setTimeout(() => {
-      setFeedMessages((prev) => prev.filter((msg) => msg.id !== id));
-      feedTimersRef.current.delete(id);
-    }, FEED_MESSAGE_DISPLAY_TIME + FEED_MESSAGE_ANIMATION_TIME);
-
-    feedTimersRef.current.set(id, { exitTimer, removeTimer });
-
     setFeedMessages((prev) => {
-      const updated = [...prev, newMessage];
-
-      // Remove oldest message if exceeds limit
-      if (updated.length > MAX_FEED_MESSAGES) {
-        const removed = updated.shift();
-        if (removed) {
-          // Clear timers for removed message
-          const timers = feedTimersRef.current.get(removed.id);
-          if (timers) {
-            clearTimeout(timers.exitTimer);
-            clearTimeout(timers.removeTimer);
-            feedTimersRef.current.delete(removed.id);
+      // If at limit, mark oldest as exiting (will be removed after animation)
+      if (prev.length >= MAX_FEED_MESSAGES) {
+        const oldest = prev[0];
+        if (oldest && !oldest.exiting) {
+          // Clear any existing timer for this message
+          const existingTimer = feedTimersRef.current.get(oldest.id);
+          if (existingTimer) {
+            clearTimeout(existingTimer);
           }
+
+          // Set timer to remove after animation
+          const removeTimer = setTimeout(() => {
+            setFeedMessages((current) => current.filter((msg) => msg.id !== oldest.id));
+            feedTimersRef.current.delete(oldest.id);
+          }, FEED_MESSAGE_ANIMATION_TIME);
+
+          feedTimersRef.current.set(oldest.id, removeTimer);
+
+          // Mark as exiting and add new message
+          return [
+            { ...oldest, exiting: true },
+            ...prev.slice(1),
+            newMessage,
+          ];
         }
       }
 
-      return updated;
+      return [...prev, newMessage];
     });
   }, []);
 
@@ -369,10 +361,7 @@ export default function OBSPage() {
         switcherTimerRef.current = null;
       }
       // Clean up all feed message timers
-      feedTimersRef.current.forEach((timers) => {
-        clearTimeout(timers.exitTimer);
-        clearTimeout(timers.removeTimer);
-      });
+      feedTimersRef.current.forEach((timer) => clearTimeout(timer));
       feedTimersRef.current.clear();
     };
   }, [isMonitoringEnabled]);
