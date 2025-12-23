@@ -4,9 +4,20 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const encoder = new TextEncoder();
+  let isClosed = false;
 
   const stream = new ReadableStream({
     start(controller) {
+      const safeEnqueue = (data: Uint8Array) => {
+        if (!isClosed) {
+          try {
+            controller.enqueue(data);
+          } catch {
+            isClosed = true;
+          }
+        }
+      };
+
       const onNewLog = (log: ApiLogEntry) => {
         const data = JSON.stringify({
           id: log.id,
@@ -14,26 +25,32 @@ export async function GET() {
           endpointType: log.endpointType,
           quotaCost: log.quotaCost,
         });
-        controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+        safeEnqueue(encoder.encode(`data: ${data}\n\n`));
       };
 
       logEmitter.on("newLog", onNewLog);
 
-      // Send heartbeat every 30 seconds to keep connection alive
       const heartbeat = setInterval(() => {
-        controller.enqueue(encoder.encode(": heartbeat\n\n"));
+        safeEnqueue(encoder.encode(": heartbeat\n\n"));
       }, 30000);
 
-      // Cleanup when client disconnects
       const cleanup = () => {
+        isClosed = true;
         logEmitter.off("newLog", onNewLog);
         clearInterval(heartbeat);
+        try {
+          controller.close();
+        } catch {
+          // Already closed
+        }
       };
 
-      // Handle abort signal
-      controller.enqueue(encoder.encode(": connected\n\n"));
+      safeEnqueue(encoder.encode(": connected\n\n"));
 
       return cleanup;
+    },
+    cancel() {
+      isClosed = true;
     },
   });
 
