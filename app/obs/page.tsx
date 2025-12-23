@@ -3,6 +3,9 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import styles from "./page.module.css";
 
+const FEED_MESSAGE_ANIMATION_TIME = 300;
+const MAX_FEED_MESSAGES = 5;
+
 interface Message {
   time: string;
   author: string;
@@ -14,6 +17,14 @@ interface OverlayMessage {
   author: string;
   message: string;
   timestamp: number;
+}
+
+interface FeedMessage {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: number;
+  exiting?: boolean;
 }
 
 export default function OBSPage() {
@@ -31,6 +42,21 @@ export default function OBSPage() {
     return true;
   });
 
+  // Feed mode state
+  const [mode, setMode] = useState<"feed" | "manual">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("obsOverlayMode");
+      return (saved === "feed" || saved === "manual") ? saved : "feed";
+    }
+    return "feed";
+  });
+  const [feedMessages, setFeedMessages] = useState<FeedMessage[]>([]);
+  const feedTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Mode switcher visibility
+  const [switcherVisible, setSwitcherVisible] = useState(false);
+  const switcherTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const eventSourceRef = useRef<EventSource | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const checkStreamTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -45,8 +71,49 @@ export default function OBSPage() {
     }
   }, [isMonitoringEnabled]);
 
-  // Polling for overlay messages
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("obsOverlayMode", mode);
+    }
+  }, [mode]);
+
+  // Mouse movement handler for switcher visibility
+  useEffect(() => {
+    const handleMouseMove = () => {
+      setSwitcherVisible(true);
+
+      if (switcherTimerRef.current) {
+        clearTimeout(switcherTimerRef.current);
+      }
+
+      switcherTimerRef.current = setTimeout(() => {
+        setSwitcherVisible(false);
+      }, 3000);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (switcherTimerRef.current) {
+        clearTimeout(switcherTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Clear feed messages and timers when switching to manual mode
+  useEffect(() => {
+    if (mode === "manual") {
+      setFeedMessages([]);
+      feedTimersRef.current.forEach((timer) => clearTimeout(timer));
+      feedTimersRef.current.clear();
+    }
+  }, [mode]);
+
+  // Polling for overlay messages (manual mode only)
+  useEffect(() => {
+    if (mode !== "manual") return;
+
     const pollOverlay = async () => {
       try {
         const response = await fetch("/api/overlay");
@@ -77,7 +144,7 @@ export default function OBSPage() {
     pollOverlay();
     const interval = setInterval(pollOverlay, 1500);
     return () => clearInterval(interval);
-  }, []);
+  }, [mode]);
 
   // Typewriter effect
   useEffect(() => {
@@ -115,6 +182,47 @@ export default function OBSPage() {
     });
   };
 
+  const addFeedMessage = useCallback((author: string, text: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    const newMessage: FeedMessage = {
+      id,
+      author,
+      text,
+      createdAt: Date.now(),
+    };
+
+    setFeedMessages((prev) => {
+      // If at limit, mark oldest as exiting (will be removed after animation)
+      if (prev.length >= MAX_FEED_MESSAGES) {
+        const oldest = prev[0];
+        if (oldest && !oldest.exiting) {
+          // Clear any existing timer for this message
+          const existingTimer = feedTimersRef.current.get(oldest.id);
+          if (existingTimer) {
+            clearTimeout(existingTimer);
+          }
+
+          // Set timer to remove after animation
+          const removeTimer = setTimeout(() => {
+            setFeedMessages((current) => current.filter((msg) => msg.id !== oldest.id));
+            feedTimersRef.current.delete(oldest.id);
+          }, FEED_MESSAGE_ANIMATION_TIME);
+
+          feedTimersRef.current.set(oldest.id, removeTimer);
+
+          // Mark as exiting and add new message
+          return [
+            { ...oldest, exiting: true },
+            ...prev.slice(1),
+            newMessage,
+          ];
+        }
+      }
+
+      return [...prev, newMessage];
+    });
+  }, []);
+
   const stopStreaming = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -141,7 +249,13 @@ export default function OBSPage() {
           try {
             const data = JSON.parse(event.data);
             if (data.messages && Array.isArray(data.messages)) {
-              data.messages.forEach((msg: Message) => appendMessage(msg));
+              data.messages.forEach((msg: Message) => {
+                appendMessage(msg);
+                // Add to feed if in feed mode
+                if (mode === "feed") {
+                  addFeedMessage(msg.author, msg.text);
+                }
+              });
             }
           } catch (error) {
             console.error("Failed to parse SSE message:", error);
@@ -161,7 +275,7 @@ export default function OBSPage() {
         };
       }
     },
-    [isMonitoringEnabled]
+    [isMonitoringEnabled, mode, addFeedMessage]
   );
 
   const scheduleNextCheck = useCallback(() => {
@@ -242,6 +356,13 @@ export default function OBSPage() {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
+      if (switcherTimerRef.current) {
+        clearTimeout(switcherTimerRef.current);
+        switcherTimerRef.current = null;
+      }
+      // Clean up all feed message timers
+      feedTimersRef.current.forEach((timer) => clearTimeout(timer));
+      feedTimersRef.current.clear();
     };
   }, [isMonitoringEnabled]);
 
@@ -274,7 +395,39 @@ export default function OBSPage() {
 
   return (
     <div className={styles.container}>
-      {overlayMessage && (
+      {/* Mode switcher */}
+      <div className={`${styles.modeSwitcher} ${!switcherVisible ? styles.modeSwitcherHidden : ''}`}>
+        <button
+          className={`${styles.modeButton} ${mode === "feed" ? styles.modeButtonActive : ''}`}
+          onClick={() => setMode("feed")}
+        >
+          Лента
+        </button>
+        <button
+          className={`${styles.modeButton} ${mode === "manual" ? styles.modeButtonActive : ''}`}
+          onClick={() => setMode("manual")}
+        >
+          Ручной
+        </button>
+      </div>
+
+      {/* Feed mode */}
+      {mode === "feed" && (
+        <div className={styles.feed}>
+          {feedMessages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`${styles.feedMessage} ${msg.exiting ? styles.feedMessageExiting : ''}`}
+            >
+              <div className={styles.feedAuthor}>{msg.author}</div>
+              <div className={styles.feedText}>{msg.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Manual mode */}
+      {mode === "manual" && overlayMessage && (
         <div className={`${styles.overlay} ${isVisible ? styles.overlayVisible : styles.overlayHidden}`}>
           <div className={styles.overlayAuthor}>{overlayMessage.author}</div>
           <div className={styles.overlayText}>

@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
   }
   
   const encoder = new TextEncoder();
+  let isClosed = false;
+
   const stream = new ReadableStream({
     async start(controller) {
       const youtube = createYoutubeClient(apiKey);
@@ -26,14 +28,26 @@ export async function GET(request: NextRequest) {
       const MIN_POLLING_INTERVAL = 5000; // Minimum 5 seconds to save quota
       let pollingInterval = MIN_POLLING_INTERVAL;
       let timer: NodeJS.Timeout | null = null;
-      
+
+      const safeEnqueue = (data: Uint8Array) => {
+        if (!isClosed) {
+          try {
+            controller.enqueue(data);
+          } catch {
+            isClosed = true;
+          }
+        }
+      };
+
       const poll = async () => {
+        if (isClosed) return;
+
         try {
           await ensureDatabaseInitialized();
           const data = await fetchMessages(youtube, liveChatId, nextPageToken);
           const items = data.items ?? [];
           const formattedMessages = items.map((item) => formatMessage(item));
-          
+
           if (formattedMessages.length > 0) {
             const messagesToSave = formattedMessages.map((msg) => ({
               messageId: msg.messageId,
@@ -44,31 +58,38 @@ export async function GET(request: NextRequest) {
               publishedAt: msg.publishedAt,
             }));
             await saveMessages(messagesToSave);
-            
+
             const messagesToSend = formattedMessages.map(({ messageId, publishedAt, ...rest }) => rest);
             const jsonData = JSON.stringify({ messages: messagesToSend });
-            controller.enqueue(encoder.encode(`data: ${jsonData}\n\n`));
+            safeEnqueue(encoder.encode(`data: ${jsonData}\n\n`));
           }
-          
+
           nextPageToken = data.nextPageToken ?? undefined;
           // Use YouTube's recommended interval, but never less than minimum
           const youtubeInterval = data.pollingIntervalMillis ?? MIN_POLLING_INTERVAL;
           pollingInterval = Math.max(youtubeInterval, MIN_POLLING_INTERVAL);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`));
+          safeEnqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`));
         }
-        
-        timer = setTimeout(poll, pollingInterval);
+
+        if (!isClosed) {
+          timer = setTimeout(poll, pollingInterval);
+        }
       };
-      
+
       poll();
-      
+
       request.signal.addEventListener("abort", () => {
+        isClosed = true;
         if (timer) {
           clearTimeout(timer);
         }
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Already closed
+        }
       });
     },
   });

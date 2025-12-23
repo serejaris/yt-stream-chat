@@ -275,3 +275,92 @@
     grid-template-columns: 350px 1fr;
   }
 }
+
+/* Log section */
+.logHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sessionBadge {
+  background: var(--sidebar);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.resetButton {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.resetButton:hover {
+  background: var(--sidebar);
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.logList {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--sidebar);
+}
+
+.logEntry {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.logEntry:last-child {
+  border-bottom: none;
+}
+
+.logTime {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  flex-shrink: 0;
+}
+
+.logEndpoint {
+  flex: 1;
+  background: transparent;
+  padding: 0;
+  color: var(--accent);
+  font-size: 0.875rem;
+}
+
+.logCost {
+  color: var(--warning);
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.emptyLog {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+}
