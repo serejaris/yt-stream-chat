@@ -16,6 +16,14 @@ interface OverlayMessage {
   timestamp: number;
 }
 
+interface FeedMessage {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: number;
+  exiting?: boolean;
+}
+
 export default function OBSPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [overlayMessage, setOverlayMessage] = useState<OverlayMessage | null>(null);
@@ -31,6 +39,16 @@ export default function OBSPage() {
     return true;
   });
 
+  // Feed mode state
+  const [mode, setMode] = useState<"feed" | "manual">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("obsOverlayMode");
+      return (saved === "feed" || saved === "manual") ? saved : "feed";
+    }
+    return "feed";
+  });
+  const [feedMessages, setFeedMessages] = useState<FeedMessage[]>([]);
+
   const eventSourceRef = useRef<EventSource | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const checkStreamTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -44,6 +62,12 @@ export default function OBSPage() {
       localStorage.setItem("obsMonitoringEnabled", String(isMonitoringEnabled));
     }
   }, [isMonitoringEnabled]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("obsOverlayMode", mode);
+    }
+  }, [mode]);
 
   // Polling for overlay messages
   useEffect(() => {
