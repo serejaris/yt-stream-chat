@@ -50,6 +50,7 @@ export default function OBSPage() {
     }
     return "feed";
   });
+  const modeRef = useRef(mode);
   const [feedMessages, setFeedMessages] = useState<FeedMessage[]>([]);
   const feedTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
@@ -75,6 +76,7 @@ export default function OBSPage() {
     if (typeof window !== "undefined") {
       localStorage.setItem("obsOverlayMode", mode);
     }
+    modeRef.current = mode;
   }, [mode]);
 
   // Mouse movement handler for switcher visibility
@@ -233,7 +235,7 @@ export default function OBSPage() {
 
   const startStreaming = useCallback(
     (payload: { liveChatId: string; videoId: string }) => {
-      if (!isMountedRef.current || !isMonitoringEnabled || document.hidden) {
+      if (!isMountedRef.current || !isMonitoringEnabled) {
         return;
       }
 
@@ -252,7 +254,7 @@ export default function OBSPage() {
               data.messages.forEach((msg: Message) => {
                 appendMessage(msg);
                 // Add to feed if in feed mode
-                if (mode === "feed") {
+                if (modeRef.current === "feed") {
                   addFeedMessage(msg.author, msg.text);
                 }
               });
@@ -267,7 +269,7 @@ export default function OBSPage() {
           eventSource.close();
           eventSourceRef.current = null;
 
-          if (isMonitoringEnabled && !document.hidden && isMountedRef.current && checkForStreamRef.current) {
+          if (isMonitoringEnabled && isMountedRef.current && checkForStreamRef.current) {
             checkStreamTimerRef.current = setTimeout(() => {
               checkForStreamRef.current?.();
             }, 5000);
@@ -275,7 +277,7 @@ export default function OBSPage() {
         };
       }
     },
-    [isMonitoringEnabled, mode, addFeedMessage]
+    [isMonitoringEnabled, addFeedMessage]
   );
 
   const scheduleNextCheck = useCallback(() => {
@@ -286,7 +288,6 @@ export default function OBSPage() {
 
     if (
       isMonitoringEnabled &&
-      !document.hidden &&
       isMountedRef.current &&
       !eventSourceRef.current &&
       checkForStreamRef.current
@@ -298,7 +299,7 @@ export default function OBSPage() {
   }, [isMonitoringEnabled]);
 
   const checkForStream = useCallback(async () => {
-    if (!isMonitoringEnabled || document.hidden || !isMountedRef.current) {
+    if (!isMonitoringEnabled || !isMountedRef.current) {
       return;
     }
 
@@ -363,33 +364,6 @@ export default function OBSPage() {
       // Clean up all feed message timers
       feedTimersRef.current.forEach((timer) => clearTimeout(timer));
       feedTimersRef.current.clear();
-    };
-  }, [isMonitoringEnabled]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (eventSourceRef.current) {
-          eventSourceRef.current.close();
-          eventSourceRef.current = null;
-        }
-        if (checkStreamTimerRef.current) {
-          clearTimeout(checkStreamTimerRef.current);
-          checkStreamTimerRef.current = null;
-        }
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-          abortControllerRef.current = null;
-        }
-      } else if (isMonitoringEnabled && isMountedRef.current && checkForStreamRef.current) {
-        retryDelayRef.current = 5000;
-        checkForStreamRef.current();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [isMonitoringEnabled]);
 
