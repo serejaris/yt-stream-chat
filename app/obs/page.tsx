@@ -194,34 +194,14 @@ export default function OBSPage() {
     };
 
     setFeedMessages((prev) => {
-      // If at limit, mark oldest as exiting (will be removed after animation)
-      if (prev.length >= MAX_FEED_MESSAGES) {
-        const oldest = prev[0];
-        if (oldest && !oldest.exiting) {
-          // Clear any existing timer for this message
-          const existingTimer = feedTimersRef.current.get(oldest.id);
-          if (existingTimer) {
-            clearTimeout(existingTimer);
-          }
-
-          // Set timer to remove after animation
-          const removeTimer = setTimeout(() => {
-            setFeedMessages((current) => current.filter((msg) => msg.id !== oldest.id));
-            feedTimersRef.current.delete(oldest.id);
-          }, FEED_MESSAGE_ANIMATION_TIME);
-
-          feedTimersRef.current.set(oldest.id, removeTimer);
-
-          // Mark as exiting and add new message
-          return [
-            { ...oldest, exiting: true },
-            ...prev.slice(1),
-            newMessage,
-          ];
-        }
+      const newMessages = [...prev, newMessage];
+      // Keep only last MAX_FEED_MESSAGES, mark overflow as exiting for animation
+      if (newMessages.length > MAX_FEED_MESSAGES) {
+        const toRemove = newMessages.length - MAX_FEED_MESSAGES;
+        // Mark first N as exiting, keep rest
+        return newMessages.slice(toRemove);
       }
-
-      return [...prev, newMessage];
+      return newMessages;
     });
   }, []);
 
